@@ -73,7 +73,7 @@ func replyUsage(s *discordgo.Session, m *discordgo.MessageCreate) {
 			{Name: "例", Value: "`4D6` (6面ダイスを4個)\n`2D100` (100面ダイスを2個)"},
 			{Name: "範囲", Value: "個数: 1〜100 / 面数: 1〜100"},
 		},
-		Color: 0x3DAE78,
+		Color: 0x3498DB,
 	}
 	sendEmbed(s, m, embed)
 }
