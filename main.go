@@ -39,17 +39,17 @@ func main() {
 
 		afterMention := strings.TrimSpace(m.Content[mentionEnd+1:])
 		if afterMention == "" {
-			reply(s, m, "Usage: `<@bot> 4D6`")
+			replyUsage(s, m)
 			return
 		}
 
 		result, err := dice.RollNotation(afterMention)
 		if err != nil {
-			reply(s, m, fmt.Sprintf("Error: %s", err.Error()))
+			replyError(s, m, err)
 			return
 		}
 
-		reply(s, m, result.String())
+		replyRoll(s, m, result)
 	})
 
 	if err := s.Open(); err != nil {
@@ -65,8 +65,50 @@ func main() {
 	log.Println("Shutting down...")
 }
 
-func reply(s *discordgo.Session, m *discordgo.MessageCreate, content string) {
-	if _, err := s.ChannelMessageSend(m.ChannelID, content); err != nil {
-		log.Printf("Failed to send reply: %v", err)
+func replyUsage(s *discordgo.Session, m *discordgo.MessageCreate) {
+	embed := &discordgo.MessageEmbed{
+		Title: "🎲 ダイスの使い方",
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "表記形式", Value: "`NDM` — N個のM面ダイス"},
+			{Name: "例", Value: "`4D6` (6面ダイスを4個)\n`2D100` (100面ダイスを2個)"},
+			{Name: "範囲", Value: "個数: 1〜100 / 面数: 1〜100"},
+		},
+		Color: 0x3DAE78,
+	}
+	sendEmbed(s, m, embed)
+}
+
+func replyError(s *discordgo.Session, m *discordgo.MessageCreate, err error) {
+	embed := &discordgo.MessageEmbed{
+		Title:       "❌ エラー",
+		Description: fmt.Sprintf("Error: %s", err.Error()),
+		Color:       0xDC3545,
+	}
+	sendEmbed(s, m, embed)
+}
+
+func replyRoll(s *discordgo.Session, m *discordgo.MessageCreate, result dice.Result) {
+	values := make([]string, len(result.Values))
+	for i, v := range result.Values {
+		values[i] = fmt.Sprintf("%d", v)
+	}
+	embed := &discordgo.MessageEmbed{
+		Title: fmt.Sprintf("🎲 %s を振りました！", diceNotation(result.Count, result.Sides)),
+		Fields: []*discordgo.MessageEmbedField{
+			{Name: "各目", Value: fmt.Sprintf("[%s]", strings.Join(values, ", ")), Inline: true},
+			{Name: "合計", Value: fmt.Sprintf("**%d**", result.Total), Inline: true},
+		},
+		Color: 0x3DAE78,
+	}
+	sendEmbed(s, m, embed)
+}
+
+func diceNotation(count, sides int) string {
+	return fmt.Sprintf("%dD%d", count, sides)
+}
+
+func sendEmbed(s *discordgo.Session, m *discordgo.MessageCreate, embed *discordgo.MessageEmbed) {
+	if _, err := s.ChannelMessageSendEmbed(m.ChannelID, embed); err != nil {
+		log.Printf("Failed to send embed: %v", err)
 	}
 }
